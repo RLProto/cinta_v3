@@ -1,0 +1,46 @@
+version: '3'
+
+services:
+  inference-ag:
+    image: rlproto/cinta_v3:cloud-ag-v1.0 
+    container_name: inference-ag
+    ports:
+      - "9999:9999" 
+    volumes:
+      - ./data:/workspace/app/data
+    restart: unless-stopped
+    networks:
+      - network
+
+  inference-cinta:
+    image: rlproto/cinta_v3:cloud-cinta-v1.0  
+    container_name: inference-cinta
+    ports:
+      - "8888:8888"  
+    volumes:
+      - ./data:/workspace/app/data
+    restart: unless-stopped
+    networks:
+      - network
+
+  send-frames:
+    image: rlproto/cinta_v2:send-frames-v1.0  # Ensure the Dockerfile in this directory is set up correctly
+    container_name: send-frames
+    restart: unless-stopped
+    networks:
+      - network
+    depends_on:
+      - inference-ag
+      - inference-cinta
+    volumes:
+      - ./send-frames/images:/app/images  # Mounts a local folder for saving images and other data
+    environment:
+      - URL_8888=http://localhost:8888
+      - URL_9999=http://localhost:9999
+      - NODE_RED_URL=http://10.18.160.2:1885/cinta  # Adjust if you have a Node-RED service
+      - CAMERA_URL=rtsp://admin:Ambev123@192.168.0.56:554/profile1  # Placeholder for the actual camera URL
+      - INFERENCE_INTERVAL=15  # Inference interval set to 10 seconds
+
+networks:
+  network:
+    driver: bridge  # Use a bridge network for internal communication
