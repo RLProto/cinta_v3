@@ -2,7 +2,7 @@ version: '3'
 
 services:
   inference-ag:
-    image: rlproto/cinta_v3:cloud-ag-v1.0 
+    image: rlproto/cinta_v3:inference-ag-1.0 
     container_name: inference-ag
     ports:
       - "9999:9999" 
@@ -13,7 +13,7 @@ services:
       - network
 
   inference-cinta:
-    image: rlproto/cinta_v3:cloud-cinta-v1.0  
+    image: rlproto/cinta_v3:inference-cinta-1.0  
     container_name: inference-cinta
     ports:
       - "8888:8888"  
@@ -24,7 +24,7 @@ services:
       - network
 
   send-frames:
-    image: rlproto/cinta_v2:send-frames-v1.0  # Ensure the Dockerfile in this directory is set up correctly
+    image: rlproto/cinta_v3:send-frames-v1.0  # Ensure the Dockerfile in this directory is set up correctly
     container_name: send-frames
     restart: unless-stopped
     networks:
