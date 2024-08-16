@@ -35,8 +35,8 @@ services:
     volumes:
       - ./send-frames/images:/app/images  # Mounts a local folder for saving images and other data
     environment:
-      - URL_8888=http://localhost:8888
-      - URL_9999=http://localhost:9999
+      - URL_8888=http://inference-cinta:8888
+      - URL_9999=http://inference-ag:9999
       - NODE_RED_URL=http://10.18.160.2:1885/cinta  # Adjust if you have a Node-RED service
       - CAMERA_URL=rtsp://admin:Ambev123@192.168.0.56:554/profile1  # Placeholder for the actual camera URL
       - INFERENCE_INTERVAL=30  # Inference interval set to 10 seconds

@@ -3,6 +3,7 @@ import numpy as np
 import time
 import asyncio
 import aiohttp
+from aiohttp import FormData
 import os
 import logging
 import threading
@@ -103,20 +104,24 @@ def annotate_frame(frame, text, position, rect_color, text_color):
     cv2.putText(frame, text, position, cv2.FONT_HERSHEY_SIMPLEX, 1, text_color, 2, cv2.LINE_AA)
 
 async def upload_model(session, url, file_path):
-    with open(file_path, 'rb') as file:
-        files = {'file': file}
-        response = await session.post(url, files=files)
+    data = FormData()
+    data.add_field('file', open(file_path, 'rb'))
+    
+    try:
+        response = await session.post(url, data=data)
         if response.status != 200:
             logging.error(f"Failed to upload model to {url}: {response.status}")
         else:
             logging.info(f"Model uploaded successfully to {url}")
+    except Exception as e:
+        logging.error(f"Error during model upload to {url}: {str(e)}")
 
 async def main():
     cap = VideoCapture(CAMERA_URL)
     async with aiohttp.ClientSession() as session:
         # Upload models
         await upload_model(session, URL_9999 + UPLOAD_MODEL_ENDPOINT, 'model/ag.zip')
-        await upload_model(session, URL_8888 + UPLOAD_MODEL_ENDPOINT, 'model/cinta_.zip')
+        await upload_model(session, URL_8888 + UPLOAD_MODEL_ENDPOINT, 'model/cinta.zip')
 
         while True:
             ret, frame = cap.read()
