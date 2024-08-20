@@ -1,10 +1,20 @@
 from fastapi import FastAPI, Response
 from fastapi.responses import RedirectResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.openapi import add_custom_openapi_schema
 from app.routes import manager_model_route
 
 app = FastAPI(servers=[{"url": "http://localhost:8888"}])
+
+# Set up CORS to allow all origins
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
 
 app.include_router(manager_model_route.router)
 add_custom_openapi_schema(app)
