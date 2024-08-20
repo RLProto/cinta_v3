@@ -8,6 +8,7 @@ import os
 import logging
 import threading
 import queue
+import base64
 
 # Constants for the APIs and Node-RED
 URL_8888 = os.getenv('URL_8888', 'http://localhost:8888')
@@ -17,6 +18,7 @@ INFERENCE_ENDPOINT = "/inference"
 UPLOAD_MODEL_ENDPOINT = "/upload-model"
 INFERENCE_INTERVAL = int(os.getenv('INFERENCE_INTERVAL', 15))
 CAMERA_URL = os.getenv('CAMERA_URL')
+CAMERA_URL = "rtsp://teste:Ambev123@192.168.137.109:554/cam/realmonitor?channel=1&subtype=0"
 
 # Ensure the directory for saving frames exists
 save_dir = "/app/images"
@@ -80,9 +82,20 @@ class VideoCapture:
     def read(self):
         return self.q.get()
 
-async def send_request(session, url, img_encoded):
-    headers = {'Content-Type': 'application/octet-stream'}
-    async with session.post(url, data=img_encoded.tobytes(), headers=headers) as response:
+
+
+async def send_request(session, url, img_bytes):
+    data = FormData()
+    data.add_field('file',
+                   img_bytes,
+                   filename='frame.jpg',
+                   content_type='image/jpeg')
+
+    headers = {
+        'Content-Type': 'multipart/form-data'
+    }  # This header is usually set automatically by aiohttp when using FormData
+
+    async with session.post(url, data=data) as response:
         if response.status == 200:
             return await response.json()
         else:
@@ -118,6 +131,7 @@ async def upload_model(session, url, file_path):
 
 async def main():
     cap = VideoCapture(CAMERA_URL)
+    
     async with aiohttp.ClientSession() as session:
         # Upload models
         await upload_model(session, URL_9999 + UPLOAD_MODEL_ENDPOINT, 'model/ag.zip')
@@ -138,12 +152,18 @@ async def main():
             # Draw rectangle around ROI for graos
             cv2.rectangle(frame, (x1_graos, y1_graos), (x2_graos, y2_graos), (0, 255, 0), 3)
 
-            # Encoding and sending the frame for classification
-            _, img_encoded = cv2.imencode('.jpg', cropped_frame_graos)
-            response = await send_request(session, URL_8888 + INFERENCE_ENDPOINT, img_encoded)
+            _, img_encoded = cv2.imencode('.jpg', frame)
+            img_bytes = img_encoded.tobytes()
+
+            # Sending the image data to the inference endpoint
+            response = await send_request(session, URL_8888 + INFERENCE_ENDPOINT, img_bytes)
             if response:
-                cinta_class = response.get('classification')
-                cinta_conf = response.get('confidence-score')
+                cinta_class = response.get('prediction')
+                cinta_conf = response.get('accuracy')
+                # Handle the response as needed
+                print(cinta_class)
+                print(cinta_conf)
+                print(response)
 
                 # Annotate and save frame for cinta classification
                 text_cinta = f"cinta: {cinta_class}, Confidence: {cinta_conf}%"
