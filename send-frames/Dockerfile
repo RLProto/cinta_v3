@@ -1,4 +1,4 @@
-FROM python:3.9.7
+FROM python:3.10-slim as base
 
 # Define as variáveis de ambiente
 ENV LANG C.UTF-8
@@ -19,5 +19,5 @@ COPY . .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Define o comando padrão a ser executado quando o contêiner for iniciado
-CMD ["python", "send_frames.py"]
+# Add a 10-second delay before starting the application
+ENTRYPOINT ["sh", "-c", "sleep 10 && python send_frames.py"]

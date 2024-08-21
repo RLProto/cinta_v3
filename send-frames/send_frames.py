@@ -18,7 +18,6 @@ INFERENCE_ENDPOINT = "/inference"
 UPLOAD_MODEL_ENDPOINT = "/upload-model"
 INFERENCE_INTERVAL = int(os.getenv('INFERENCE_INTERVAL', 15))
 CAMERA_URL = os.getenv('CAMERA_URL')
-CAMERA_URL = "rtsp://teste:Ambev123@192.168.137.109:554/cam/realmonitor?channel=1&subtype=0"
 
 # Ensure the directory for saving frames exists
 save_dir = "/app/images"
@@ -81,8 +80,6 @@ class VideoCapture:
 
     def read(self):
         return self.q.get()
-
-
 
 async def send_request(session, url, img_bytes):
     data = FormData()
@@ -152,7 +149,7 @@ async def main():
             # Draw rectangle around ROI for graos
             cv2.rectangle(frame, (x1_graos, y1_graos), (x2_graos, y2_graos), (0, 255, 0), 3)
 
-            _, img_encoded = cv2.imencode('.jpg', frame)
+            _, img_encoded = cv2.imencode('.jpg', cropped_frame_graos)
             img_bytes = img_encoded.tobytes()
 
             # Sending the image data to the inference endpoint
@@ -160,17 +157,13 @@ async def main():
             if response:
                 cinta_class = response.get('prediction')
                 cinta_conf = response.get('accuracy')
-                # Handle the response as needed
-                print(cinta_class)
-                print(cinta_conf)
-                print(response)
 
                 # Annotate and save frame for cinta classification
                 text_cinta = f"cinta: {cinta_class}, Confidence: {cinta_conf}%"
                 annotate_frame(frame, text_cinta, (50, 40), (255, 255, 255), (0, 0, 255))
                 cv2.imwrite(os.path.join(save_dir, f"cinta_{int(time.time())}.jpg"), frame)
 
-                if cinta_class == "alto" and cinta_conf >= 98:
+                if cinta_class == "alto" and cinta_conf <= 0.02:
                     await asyncio.sleep(1)  # Delay for capturing a new frame
                     ret, frame = cap.read()
                     if not ret:
@@ -181,10 +174,11 @@ async def main():
                     cv2.rectangle(frame, (x1_ag, y1_ag), (x2_ag, y2_ag), (0, 255, 0), 3)
 
                     _, img_encoded = cv2.imencode('.jpg', cropped_frame_ag)
-                    response_ag = await send_request(session, URL_9999 + INFERENCE_ENDPOINT, img_encoded)
+                    img_bytes = img_encoded.tobytes()
+                    response_ag = await send_request(session, URL_9999 + INFERENCE_ENDPOINT, img_bytes)
                     if response_ag:
-                        ag_class = response_ag.get('classification')
-                        ag_conf = response_ag.get('confidence-score')
+                        ag_class = response_ag.get('prediction')
+                        ag_conf = response_ag.get('accuracy')
 
                         # Annotate and save frame for AG classification
                         text_ag = f"AG: {ag_class}, Confidence: {ag_conf}%"
